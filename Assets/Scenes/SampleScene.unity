@@ -634,6 +634,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   gravityStrength: 10
+  movementSpeed: 0.015
   groundLayer:
     serializedVersion: 2
     m_Bits: 64
