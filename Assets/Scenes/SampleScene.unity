@@ -633,9 +633,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b2e51cbf4cf8d84395d9d40ae663b59, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gravityStrength: 10
-  movementSpeed: 0.015
-  jumpSpeed: 0.2
   groundLayer:
     serializedVersion: 2
     m_Bits: 64
@@ -689,10 +686,12 @@ MonoBehaviour:
       m_Action: Move
       m_Flags: 8
     m_Flags: 0
-  inputMoveAmount: 0
-  jumpStartingPos: {x: 0, y: 0, z: 0}
-  jumpEndingPos: {x: 0, y: 0, z: 0}
-  jumpingStatus: 0
+  gravityStrength: 13.5
+  movementSpeed: 0.25
+  jumpHeight: 2.5
+  jumpSpeed: 7
+  jumpDampener: -1.6
+  minJumpLerp: 0.66
 --- !u!1 &1046768043
 GameObject:
   m_ObjectHideFlags: 0
@@ -728,7 +727,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 332, y: -55.49}
+  m_AnchoredPosition: {x: 332, y: -55.490005}
   m_SizeDelta: {x: 664.01, y: 110.15}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1046768045

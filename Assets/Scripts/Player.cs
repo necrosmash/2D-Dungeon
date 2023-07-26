@@ -7,13 +7,16 @@ public class Player : MonoBehaviour
     [SerializeField] private LayerMask groundLayer;
     [SerializeField] private InputAction jumpAction;
     [SerializeField] private InputAction moveAction;
-
+    
     [SerializeField] private float gravityStrength;
     [SerializeField] private float movementSpeed;
     [SerializeField] private float jumpHeight;
     [SerializeField] private float jumpSpeed;
+    [SerializeField] private float jumpDampener;
+    [SerializeField] [Range(0, 1)] private float minJumpLerp; // between 0 and 1
 
     private float playerHeight, playerWidth, jumpStartingY, jumpLerp = 1;
+    private bool isJumpButtonHeld;
 
     public float InputMoveAmount { get; private set; }
     public float JumpEndingY { get; private set; }
@@ -24,19 +27,18 @@ public class Player : MonoBehaviour
     private void Awake()
     {
         jumpAction.performed += ctx => { OnJumpPerformed(ctx); };
-        //jumpAction.canceled += ctx => { OnJumpEnded(ctx); };
+        jumpAction.canceled += ctx => { OnJumpEnded(ctx); };
     }
 
     private void Start()
     {
-        IsGainingHeight = false;
+        isJumpButtonHeld = IsGainingHeight = false;
         playerHeight = GetComponent<CapsuleCollider2D>().bounds.size.y;
         playerWidth = GetComponent<CapsuleCollider2D>().bounds.size.x;
     }
 
     private void Update()
     {
-        Debug.Log(Time.deltaTime);
         InputMoveAmount = moveAction.ReadValue<float>();
     }
 
@@ -48,9 +50,20 @@ public class Player : MonoBehaviour
         if (!g && !IsGainingHeight)
             ApplyGravity(Time.deltaTime);
         else if (IsGainingHeight)
-            transform.position = new Vector3(transform.position.x, Mathf.Lerp(jumpStartingY, JumpEndingY, jumpLerp += jumpSpeed * Time.deltaTime), transform.position.z);
+        {
+            float d = jumpDampener * jumpLerp;
+            transform.position = new Vector3(
+                transform.position.x,
+                Mathf.Lerp(
+                    jumpStartingY,
+                    JumpEndingY,
+                    jumpLerp += jumpSpeed * Time.deltaTime * Mathf.Exp(d)
+                ),
+                transform.position.z
+            );
+        }
 
-        if (transform.position.y == JumpEndingY)
+        if (transform.position.y == JumpEndingY || (jumpLerp >= minJumpLerp && !isJumpButtonHeld))
             IsGainingHeight = false;
     }
 
@@ -77,11 +90,15 @@ public class Player : MonoBehaviour
     {
         if (!CheckGrounded()) return;
 
-        Debug.Log("jump performed");
         jumpLerp = 0;
         jumpStartingY = transform.position.y;
         JumpEndingY = jumpStartingY + jumpHeight;
-        IsGainingHeight = true;
+        isJumpButtonHeld = IsGainingHeight = true;
+    }
+
+    private void OnJumpEnded(InputAction.CallbackContext ctx)
+    {
+        isJumpButtonHeld = false;
     }
 
     private void OnDrawGizmos()
