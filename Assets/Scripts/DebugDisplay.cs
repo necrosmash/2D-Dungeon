@@ -5,12 +5,12 @@ using UnityEngine;
 public class DebugDisplay : MonoBehaviour
 {
     [SerializeField] private Player p;
-    private float inputMovementAmount, jumpEndingPos;
+    private float inputRunAmount, jumpEndingPos;
     private Vector3 playerPos;
     private bool isGainingHeight;
 
     private TMPro.TMP_Text display;
-    string sInputMovementAmount, sIsGainingHeight;
+    string sInputRunAmount, sIsGainingHeight;
 
     void Start()
     {
@@ -20,24 +20,24 @@ public class DebugDisplay : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        inputMovementAmount = p.InputMoveAmount;
+        inputRunAmount = p.InputRunAmount;
         playerPos = p.transform.position;
         jumpEndingPos = p.JumpEndingY;
         isGainingHeight = p.IsGainingHeight;
 
-        if (inputMovementAmount < 0)
-            sInputMovementAmount = "<color=\"red\">" + inputMovementAmount + "</color>";
-        else if (inputMovementAmount > 0)
-            sInputMovementAmount = "<color=\"green\">" + inputMovementAmount + "</color>";
+        if (inputRunAmount < 0)
+            sInputRunAmount = "<color=\"red\">" + inputRunAmount + "</color>";
+        else if (inputRunAmount > 0)
+            sInputRunAmount = "<color=\"green\">" + inputRunAmount + "</color>";
         else
-            sInputMovementAmount = "<color=\"yellow\">" + inputMovementAmount + "</color>";
+            sInputRunAmount = "<color=\"yellow\">" + inputRunAmount + "</color>";
 
         if (isGainingHeight)
             sIsGainingHeight = "<color=\"green\">" + isGainingHeight + "</color>";
         else
             sIsGainingHeight = "<color=\"red\">" + isGainingHeight + "</color>";
 
-        display.text = "inputMovement: " + sInputMovementAmount + "\n" +
+        display.text = "inputMovement: " + sInputRunAmount + "\n" +
             "position: " + playerPos + "\n" +
             "jumpEnd: " + jumpEndingPos + "\n" +
             "gainingHeight: " + sIsGainingHeight;

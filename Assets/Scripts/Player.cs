@@ -9,18 +9,20 @@ public class Player : MonoBehaviour
     [SerializeField] private InputAction moveAction;
     
     [SerializeField] private float gravityStrength;
-    [SerializeField] private float movementSpeed;
+    [SerializeField] private float runSpeedMax;
+    [SerializeField] private float runAcceleration;
     [SerializeField] private float jumpHeight;
     [SerializeField] private float jumpSpeed;
     [SerializeField] private float jumpDampener;
     [SerializeField] [Range(0, 1)] private float minJumpLerp; // between 0 and 1
 
-    private float playerHeight, playerWidth, jumpStartingY, jumpLerp = 1;
-    private bool isJumpButtonHeld;
+    private float playerHeight, playerWidth, jumpStartingY, jumpLerp = 1, runLerp = 0;
+    private bool isJumpButtonHeld = false;
 
-    public float InputMoveAmount { get; private set; }
+    public float InputRunAmount { get; private set; }
+    private float inputRunAmountPrevious;
     public float JumpEndingY { get; private set; }
-    public bool IsGainingHeight { get; private set; }
+    public bool IsGainingHeight { get; private set; } = false;
 
     private Vector3 raycastStartingPos;
 
@@ -32,19 +34,38 @@ public class Player : MonoBehaviour
 
     private void Start()
     {
-        isJumpButtonHeld = IsGainingHeight = false;
         playerHeight = GetComponent<CapsuleCollider2D>().bounds.size.y;
         playerWidth = GetComponent<CapsuleCollider2D>().bounds.size.x;
     }
 
     private void Update()
     {
-        InputMoveAmount = moveAction.ReadValue<float>();
+        InputRunAmount = moveAction.ReadValue<float>();
+        
+        if (InputRunAmount * inputRunAmountPrevious < 0.0f) // kill momentum upon direction change
+            runLerp = 0;
+
+        if (InputRunAmount != 0)
+            inputRunAmountPrevious = InputRunAmount;
+
+        if (InputRunAmount == 0)
+            // could decelerate faster if needs be by switching out runAcceleration
+            runLerp -= Time.deltaTime * runAcceleration;
+        else
+            runLerp += Time.deltaTime * runAcceleration;
+        
+        runLerp = Mathf.Clamp(runLerp, 0f, 1f);
+
+        Debug.Log(runLerp);
     }
 
     private void FixedUpdate()
     {
-        transform.position = new Vector3(transform.position.x + InputMoveAmount * movementSpeed, transform.position.y, transform.position.z);
+        transform.position = new Vector3(
+            transform.position.x + inputRunAmountPrevious * runSpeedMax * runLerp,
+            transform.position.y,
+            transform.position.z
+        );
 
         bool g = CheckGrounded();
         if (!g && !IsGainingHeight)
