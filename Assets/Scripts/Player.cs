@@ -7,7 +7,7 @@ public class Player : MonoBehaviour
     [SerializeField] private LayerMask groundLayer;
     [SerializeField] private InputAction jumpAction;
     [SerializeField] private InputAction moveAction;
-    
+
     [SerializeField] private float gravityStrength;
     [SerializeField] private float runSpeedMax;
     [SerializeField] private float runAcceleration;
@@ -15,6 +15,8 @@ public class Player : MonoBehaviour
     [SerializeField] private float jumpSpeed;
     [SerializeField] private float jumpDampener;
     [SerializeField] [Range(0, 1)] private float minJumpLerp; // between 0 and 1
+
+    private Rigidbody2D rb;
 
     private float playerHeight, playerWidth, jumpStartingY, jumpLerp = 1, runLerp = 0;
     private bool isJumpButtonHeld = false;
@@ -34,6 +36,7 @@ public class Player : MonoBehaviour
 
     private void Start()
     {
+        rb = GetComponent<Rigidbody2D>();
         playerHeight = GetComponent<CapsuleCollider2D>().bounds.size.y;
         playerWidth = GetComponent<CapsuleCollider2D>().bounds.size.x;
     }
@@ -55,42 +58,35 @@ public class Player : MonoBehaviour
             runLerp += Time.deltaTime * runAcceleration;
         
         runLerp = Mathf.Clamp(runLerp, 0f, 1f);
-
-        Debug.Log(runLerp);
     }
 
     private void FixedUpdate()
     {
-        transform.position = new Vector3(
-            transform.position.x + inputRunAmountPrevious * runSpeedMax * runLerp,
-            transform.position.y,
-            transform.position.z
-        );
-
+        float
+            xDestination = transform.position.x + inputRunAmountPrevious * runSpeedMax * runLerp,
+            yDestination = transform.position.y;
+        
         bool g = CheckGrounded();
         if (!g && !IsGainingHeight)
-            ApplyGravity(Time.deltaTime);
+            yDestination = transform.position.y - gravityStrength * Time.deltaTime; // apply gravity
         else if (IsGainingHeight)
         {
             float d = jumpDampener * jumpLerp;
-            transform.position = new Vector3(
-                transform.position.x,
-                Mathf.Lerp(
-                    jumpStartingY,
-                    JumpEndingY,
-                    jumpLerp += jumpSpeed * Time.deltaTime * Mathf.Exp(d)
-                ),
-                transform.position.z
+            yDestination = Mathf.Lerp(
+                jumpStartingY,
+                JumpEndingY,
+                jumpLerp += jumpSpeed * Time.deltaTime * Mathf.Exp(d)
             );
         }
 
+        rb.MovePosition(new Vector3(
+            xDestination,
+            yDestination,
+            transform.position.z
+        ));
+
         if (transform.position.y == JumpEndingY || (jumpLerp >= minJumpLerp && !isJumpButtonHeld))
             IsGainingHeight = false;
-    }
-
-    private void ApplyGravity(float dt)
-    {
-        transform.position = new Vector3(transform.position.x, transform.position.y - gravityStrength * dt, transform.position.z);
     }
 
     private bool CheckGrounded()
