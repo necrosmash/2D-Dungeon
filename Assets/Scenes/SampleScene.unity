@@ -638,8 +638,8 @@ MonoBehaviour:
     m_Bits: 64
   jumpAction:
     m_Name: Jump
-    m_Type: 0
-    m_ExpectedControlType: 
+    m_Type: 1
+    m_ExpectedControlType: Button
     m_Id: f8a95c8e-cbab-4bd3-8552-d225de166ea3
     m_Processors: 
     m_Interactions: 
@@ -686,12 +686,30 @@ MonoBehaviour:
       m_Action: Move
       m_Flags: 8
     m_Flags: 0
+  dashAction:
+    m_Name: Dash
+    m_Type: 1
+    m_ExpectedControlType: Button
+    m_Id: ed2c1d84-3ac2-4900-a2a1-ac78ae578f5e
+    m_Processors: 
+    m_Interactions: 
+    m_SingletonActionBindings:
+    - m_Name: 
+      m_Id: 5ab21cb3-1a64-47f6-952d-29f9293951e0
+      m_Path: <Keyboard>/leftShift
+      m_Interactions: 
+      m_Processors: 
+      m_Groups: 
+      m_Action: Dash
+      m_Flags: 0
+    m_Flags: 0
   gravityStrength: 13.5
   runSpeedMax: 0.25
   runAcceleration: 3
   jumpHeight: 2.5
   jumpSpeed: 7
   jumpDampener: -1.6
+  dashDistance: 4
   minJumpLerp: 0.66
 --- !u!1 &1046768043
 GameObject:

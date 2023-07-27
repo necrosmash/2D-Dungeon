@@ -7,6 +7,7 @@ public class Player : MonoBehaviour
     [SerializeField] private LayerMask groundLayer;
     [SerializeField] private InputAction jumpAction;
     [SerializeField] private InputAction moveAction;
+    [SerializeField] private InputAction dashAction;
 
     [SerializeField] private float gravityStrength;
     [SerializeField] private float runSpeedMax;
@@ -14,6 +15,7 @@ public class Player : MonoBehaviour
     [SerializeField] private float jumpHeight;
     [SerializeField] private float jumpSpeed;
     [SerializeField] private float jumpDampener;
+    [SerializeField] private float dashDistance;
     [SerializeField] [Range(0, 1)] private float minJumpLerp; // between 0 and 1
 
     private Rigidbody2D rb;
@@ -28,10 +30,19 @@ public class Player : MonoBehaviour
 
     private Vector3 raycastStartingPos;
 
+    private enum DashingState
+    {
+        dashingLeft,
+        dashingRight,
+        notDashing
+    }
+    private DashingState dashingState = DashingState.notDashing;
+
     private void Awake()
     {
         jumpAction.performed += ctx => { OnJumpPerformed(ctx); };
         jumpAction.canceled += ctx => { OnJumpEnded(ctx); };
+        dashAction.performed += ctx => { OnDashPerformed(ctx); };
     }
 
     private void Start()
@@ -65,7 +76,18 @@ public class Player : MonoBehaviour
         float
             xDestination = transform.position.x + inputRunAmountPrevious * runSpeedMax * runLerp,
             yDestination = transform.position.y;
-        
+
+        switch (dashingState)
+        {
+            case DashingState.dashingLeft:
+                xDestination -= dashDistance;
+                break;
+            case DashingState.dashingRight:
+                xDestination += dashDistance;
+                break;
+        }
+        dashingState = DashingState.notDashing;
+
         bool g = CheckGrounded();
         if (!g && !IsGainingHeight)
             yDestination = transform.position.y - gravityStrength * Time.deltaTime; // apply gravity
@@ -118,6 +140,22 @@ public class Player : MonoBehaviour
         isJumpButtonHeld = false;
     }
 
+    private void OnDashPerformed(InputAction.CallbackContext ctx)
+    {
+        switch (inputRunAmountPrevious) {
+            case -1:
+                dashingState = DashingState.dashingLeft;
+                break;
+            case 1:
+                dashingState = DashingState.dashingRight;
+                break;
+            case 0:
+            default:
+                dashingState = DashingState.notDashing;
+                break;
+        }
+    }
+
     private void OnDrawGizmos()
     {
         if (raycastStartingPos == null) return;
@@ -132,11 +170,13 @@ public class Player : MonoBehaviour
     {
         moveAction.Enable();
         jumpAction.Enable();
+        dashAction.Enable();
     }
 
     public void OnDisable()
     {
         moveAction.Disable();
         jumpAction.Disable();
+        dashAction.Disable();
     }
 }
