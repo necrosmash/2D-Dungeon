@@ -1,0 +1,2 @@
+# Notes
+- currently, dashing doesn't work until a direction (left / right) is input first. When rendering a sprite that denotes that the player is facing a certain direction, dashing should be set to move in that direction upon spawn.
