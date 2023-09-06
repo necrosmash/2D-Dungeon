@@ -10,7 +10,7 @@ public class DebugDisplay : MonoBehaviour
     private bool isGainingHeight;
 
     private TMPro.TMP_Text display;
-    string sInputRunAmount, sIsGainingHeight;
+    string sInputRunAmount, sIsGainingHeight, sDashingState;
 
     void Start()
     {
@@ -37,9 +37,25 @@ public class DebugDisplay : MonoBehaviour
         else
             sIsGainingHeight = "<color=\"red\">" + isGainingHeight + "</color>";
 
+        switch (p.DashingState)
+        {
+            case Player.EnumDashingState.DashingLeft:
+                sDashingState = "<color=\"red\">" + p.DashingState + "</color>";
+                break;
+            case Player.EnumDashingState.DashingRight:
+                sDashingState = "<color=\"green\">" + p.DashingState + "</color>";
+                break;
+            default:
+            case Player.EnumDashingState.NotDashing:
+                sDashingState = "<color=\"yellow\">" + p.DashingState + "</color>";
+                break;
+        }
+
         display.text = "inputMovement: " + sInputRunAmount + "\n" +
             "position: " + playerPos + "\n" +
             "jumpEnd: " + jumpEndingPos + "\n" +
-            "gainingHeight: " + sIsGainingHeight;
+            "gainingHeight: " + sIsGainingHeight + "\n" +
+            "dashing: " + sDashingState + "\n" + 
+            "speed: " + p.Speed;
     }
 }

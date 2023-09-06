@@ -11,6 +11,8 @@ public class Player : MonoBehaviour
 
     [SerializeField] private float gravityStrength;
     [SerializeField] private float runSpeedMax;
+    [SerializeField] private float dashSpeed;
+    [SerializeField] private float dashDuration; // in seconds
     [SerializeField] private float runAcceleration;
     [SerializeField] private float jumpHeight;
     [SerializeField] private float jumpSpeed;
@@ -20,7 +22,7 @@ public class Player : MonoBehaviour
 
     private Rigidbody2D rb;
 
-    private float playerHeight, playerWidth, jumpStartingY, jumpLerp = 1, runLerp = 0;
+    private float halvedPlayerHeight, halvedPlayerWidth, jumpStartingY, jumpLerp = 1, runLerp = 0, currentDashDuration = 0;
     private bool isJumpButtonHeld = false;
 
     public float InputRunAmount { get; private set; }
@@ -29,14 +31,18 @@ public class Player : MonoBehaviour
     public bool IsGainingHeight { get; private set; } = false;
 
     private Vector3 raycastStartingPos;
+    private GameObject ground;
 
-    private enum DashingState
+    float xDestination, yDestination; // for controlling player position
+    public Vector2 Speed { get; private set; } = new Vector2(0f, 0f); // for logging
+
+    public enum EnumDashingState
     {
-        dashingLeft,
-        dashingRight,
-        notDashing
+        DashingLeft,
+        DashingRight,
+        NotDashing
     }
-    private DashingState dashingState = DashingState.notDashing;
+    public EnumDashingState DashingState { get; private set; } = EnumDashingState.NotDashing;
 
     private void Awake()
     {
@@ -48,12 +54,17 @@ public class Player : MonoBehaviour
     private void Start()
     {
         rb = GetComponent<Rigidbody2D>();
-        playerHeight = GetComponent<CapsuleCollider2D>().bounds.size.y;
-        playerWidth = GetComponent<CapsuleCollider2D>().bounds.size.x;
+        halvedPlayerHeight = GetComponent<CapsuleCollider2D>().bounds.extents.y;
+        halvedPlayerWidth = GetComponent<CapsuleCollider2D>().bounds.extents.x;
     }
 
     private void Update()
     {
+        ground = GetGround();
+
+        if (DashingState != EnumDashingState.NotDashing && ((currentDashDuration += Time.deltaTime) >= dashDuration))
+            DashingState = EnumDashingState.NotDashing;
+        
         InputRunAmount = moveAction.ReadValue<float>();
         
         if (InputRunAmount * inputRunAmountPrevious < 0.0f) // kill momentum upon direction change
@@ -73,33 +84,43 @@ public class Player : MonoBehaviour
 
     private void FixedUpdate()
     {
-        float
-            xDestination = transform.position.x + inputRunAmountPrevious * runSpeedMax * runLerp,
-            yDestination = transform.position.y;
+        ground = GetGround();
 
-        switch (dashingState)
+        switch (DashingState)
         {
-            case DashingState.dashingLeft:
-                xDestination -= dashDistance;
+            case EnumDashingState.DashingLeft:
+            case EnumDashingState.DashingRight:
+                xDestination = transform.position.x + inputRunAmountPrevious * dashSpeed;
                 break;
-            case DashingState.dashingRight:
-                xDestination += dashDistance;
+            default:
+            case EnumDashingState.NotDashing:
+                xDestination = transform.position.x + inputRunAmountPrevious * runSpeedMax * runLerp;
                 break;
         }
-        dashingState = DashingState.notDashing;
 
-        bool g = CheckGrounded();
-        if (!g && !IsGainingHeight)
-            yDestination = transform.position.y - gravityStrength * Time.deltaTime; // apply gravity
-        else if (IsGainingHeight)
+        yDestination = transform.position.y;
+        if (DashingState == EnumDashingState.NotDashing)
         {
-            float d = jumpDampener * jumpLerp;
-            yDestination = Mathf.Lerp(
-                jumpStartingY,
-                JumpEndingY,
-                jumpLerp += jumpSpeed * Time.deltaTime * Mathf.Exp(d)
-            );
+            if (IsGainingHeight)
+            {
+                float d = jumpDampener * jumpLerp;
+                yDestination = Mathf.Lerp(
+                    jumpStartingY,
+                    JumpEndingY,
+                    jumpLerp += jumpSpeed * Time.deltaTime * Mathf.Exp(d)
+                );
+            }
+            else if (ground == null)
+                yDestination = transform.position.y - gravityStrength * Time.deltaTime; // apply gravity
+            else
+            {
+                // we're on the ground and not gaining height.
+                // This is done to ensure consistent height:
+                yDestination = ground.transform.position.y + ground.GetComponent<BoxCollider2D>().bounds.extents.y + halvedPlayerHeight;
+            }
         }
+
+        Speed = new Vector2(xDestination - transform.position.x, yDestination - transform.position.y); // for logging
 
         rb.MovePosition(new Vector3(
             xDestination,
@@ -111,9 +132,9 @@ public class Player : MonoBehaviour
             IsGainingHeight = false;
     }
 
-    private bool CheckGrounded()
+    private GameObject GetGround()
     {
-        raycastStartingPos = new Vector3(transform.position.x, transform.position.y - (playerHeight / 2), transform.position.z);
+        raycastStartingPos = new Vector3(transform.position.x, transform.position.y - halvedPlayerHeight, transform.position.z);
 
         // Define a small raycast distance to check if the object is grounded.
         float raycastDistance = 0.1f;
@@ -121,13 +142,14 @@ public class Player : MonoBehaviour
         // Cast a ray directly down to check if the object is touching the ground.
         RaycastHit2D hit = Physics2D.Raycast(raycastStartingPos, Vector2.down, raycastDistance, groundLayer);
 
-        // If the ray hits something, the object is grounded.
-        return hit.collider != null;
+        if (hit.collider == null) return null;
+        
+        return hit.collider.gameObject;
     }
 
     private void OnJumpPerformed(InputAction.CallbackContext ctx)
     {
-        if (!CheckGrounded()) return;
+        if (GetGround() == null) return;
 
         jumpLerp = 0;
         jumpStartingY = transform.position.y;
@@ -142,16 +164,21 @@ public class Player : MonoBehaviour
 
     private void OnDashPerformed(InputAction.CallbackContext ctx)
     {
+        if (DashingState != EnumDashingState.NotDashing) return;
+
+        currentDashDuration = 0;
+        IsGainingHeight = false;
+
         switch (inputRunAmountPrevious) {
             case -1:
-                dashingState = DashingState.dashingLeft;
+                DashingState = EnumDashingState.DashingLeft;
                 break;
             case 1:
-                dashingState = DashingState.dashingRight;
+                DashingState = EnumDashingState.DashingRight;
                 break;
             case 0:
             default:
-                dashingState = DashingState.notDashing;
+                DashingState = EnumDashingState.NotDashing;
                 break;
         }
     }
@@ -160,10 +187,12 @@ public class Player : MonoBehaviour
     {
         if (raycastStartingPos == null) return;
 
-        Vector3 fromPos = new Vector3(transform.position.x - playerWidth / 2, raycastStartingPos.y, transform.position.z);
-        Vector3 toPos = new Vector3(transform.position.x + playerWidth / 2, raycastStartingPos.y, transform.position.z);
+        Vector3 fromPos = new Vector3(transform.position.x - halvedPlayerWidth, raycastStartingPos.y, transform.position.z);
+        Vector3 toPos = new Vector3(transform.position.x + halvedPlayerWidth, raycastStartingPos.y, transform.position.z);
         Gizmos.color = Color.red;
         Gizmos.DrawLine(fromPos, toPos);
+        Gizmos.color = Color.green;
+        Gizmos.DrawWireSphere(transform.position, halvedPlayerHeight);
     }
 
     public void OnEnable()
